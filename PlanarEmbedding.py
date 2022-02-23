@@ -4,17 +4,20 @@ import numpy as np
 
 class face:
   def __init__(self):
-    self.verticies = []
+    self.vertices = []
     self.adjFaces = set()
 
   def __str__(self) -> str:
-    return self.verticies.__str__()
+    return self.vertices.__str__()
 
-  def addVerticies(self, vts):
-    self.verticies = vts
+  def __len__(self) -> int:
+    return len(self.vertices)
 
-  def getVerticies(self) -> list:
-    return self.verticies
+  def addVertices(self, vts):
+    self.vertices = vts
+
+  def getVertices(self) -> list:
+    return self.vertices
   
   def addAdjFace(self, f):
     self.adjFaces.add(f)
@@ -26,15 +29,15 @@ class face:
 
   def getEdges(self) -> set:
     edges = set()
-    n = len(self.verticies)
+    n = len(self.vertices)
     if n < 2: return edges
     for i in range(1, n):
       j = i-1
-      edges.add((self.verticies[i], self.verticies[j]))
-      edges.add((self.verticies[j], self.verticies[i]))
+      edges.add((self.vertices[i], self.vertices[j]))
+      edges.add((self.vertices[j], self.vertices[i]))
     
-    edges.add((self.verticies[-1], self.verticies[0]))
-    edges.add((self.verticies[0], self.verticies[-1]))
+    edges.add((self.vertices[-1], self.vertices[0]))
+    edges.add((self.vertices[0], self.vertices[-1]))
     return edges
 
 
@@ -44,6 +47,7 @@ class Planar:
     self.n = np.shape(matrix)[0]
     self.planar = nx.check_planarity(self.G)[1]
     self.edges = list(self.planar.edges)
+    self.facesList = []
 
   def draw(self):
     nx.draw_planar(self.planar, with_labels=True)
@@ -75,7 +79,7 @@ class Planar:
           
     # Error handling for graph with no faces
     if len(singleVts) == self.n:
-      f.addVerticies = list(singleVts)
+      f.addVertices = list(singleVts)
       return f
 
     # Detect each face by looping over each vertex
@@ -95,11 +99,11 @@ class Planar:
         continue
 
       curr = origin
-      verticies = [origin]
+      vertices = [origin]
       f = face()
 
       while (next != origin):
-        verticies.append(next)
+        vertices.append(next)
 
         if ((next, curr) in faces.keys()):
           adj = faces[(next, curr)]
@@ -121,8 +125,9 @@ class Planar:
         f.addAdjFace(adj)
 
       faces[(curr, next)] = f
-      n = len(verticies)
+      n = len(vertices)
       if (n > 2): 
-        f.addVerticies(verticies)
+        f.addVertices(vertices)
 
+    self.facesList = list(set(faces.values()))
     return f

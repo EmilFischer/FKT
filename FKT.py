@@ -67,7 +67,7 @@ while len(q) > 0:
   if (f in used):
     continue
 
-  vts = f.getVerticies()
+  vts = f.getVertices()
   clockWiseEdges = 0
   u = -1
   v = -1
