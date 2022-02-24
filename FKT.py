@@ -5,14 +5,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 #--------- Create G ---------
-A = np.array([
-  [0, 1, 0, 1, 0, 0],
-  [1, 0, 1, 1, 0, 0],
-  [0, 1, 0, 0, 1, 1],
-  [1, 1, 0, 0, 1, 0],
-  [0, 0, 1, 1, 0, 1],
-  [0, 0, 1, 0, 1, 0.]
-])
+with open('100x100grid.npy', 'rb') as f:
+  A = np.load(f)
 planar = PlanarEmbedding.Planar(A)
 
 #--------- Create T1 ---------
@@ -95,11 +89,11 @@ while len(q) > 0:
 det = abs(np.linalg.det(A))
 print("# of perf matches: ", round(math.sqrt(det)))
 
-n = np.shape(A)[0]
-for i in range(n):
-  for j in range(n):
-    if (A[i, j]) == 1:
-      A[j, i] = 0
-G = nx.from_numpy_matrix(A, create_using=nx.DiGraph())
-nx.draw_planar(G, with_labels=True)
-plt.show()
+#n = np.shape(A)[0]
+#for i in range(n):
+#  for j in range(n):
+#    if (A[i, j]) == 1:
+#      A[j, i] = 0
+#G = nx.from_numpy_matrix(A, create_using=nx.DiGraph())
+#nx.draw_planar(G, with_labels=True)
+#plt.show()

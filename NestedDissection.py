@@ -6,8 +6,7 @@ import math
 class NestedDissection:
     def __init__(self, G) -> None:
         self.numbers = dict()
-        nodes = list(G.nodes)
-        self.number(G, 1, len(nodes), 0)
+        self.number(G)
 
     def separate(self, G) -> list:
         nodes = list(G.nodes)
@@ -54,65 +53,67 @@ class NestedDissection:
             else:
                 B.append(x)
 
-        print(prevLvl)
-        print(levels)
         return [A, B, S]
 
+    def number(self, G):
+        alpha = 2./3
+        beta = 8
+        n0 = math.ceil(math.pow(beta/(1-alpha), 2))
+        print(n0)
 
-    def number(self, G, a, b):
-        alpha = 0
-        beta = 0
-        nodes = list(G.nodes)
+        stack = [(G, 1, G.number_of_nodes())]
+        used = set()
+        while len(stack) > 0:
+            triple = stack.pop()
+            Gprime = triple[0]
+            nodes = list(Gprime.nodes)
 
-        if len(nodes) <= math.pow(beta/(1-alpha), 2):
-            for v in nodes:
-                if v not in self.numbers.keys():
-                    self.numbers[v] = a
-                    a += 1
-        else:
-            sets = self.separate(G)
-            i = len(sets[0])
-            j = len(sets[1])
-            k = len(sets[2])
+            graphHash = str(nodes)
+            if graphHash in used: continue
+            used.add(graphHash)
 
-            iter = 0
-            for n in range(b-k+1, b):
-                v = sets[2][iter]
-                iter += 1
-                if v not in self.numbers.keys():
-                    self.numbers[v] = n
-                    for u in G.Neighbors(v):
-                        if u in sets[2]:
-                            G.remove_edge(u, v)
+            a = triple[1]
+            b = triple[2]
 
-            Gprime = G
-            for v in nodes:
-                if v in sets[0]:
-                    Gprime.remove_node(v)
-            self.number(Gprime, b-k-j+1, b-k)
+            if len(nodes) <= n0:
+                for v in nodes:
+                    if v not in self.numbers.keys():
+                        self.numbers[v] = a
+                        a += 1
+            else:
+                sets = self.separate(Gprime)
+                i = len(sets[0])
+                j = len(sets[1])
+                k = len(sets[2])
 
-            Gprime = G
-            for v in nodes:
-                if v in sets[1]:
-                    Gprime.remove_node(v)
-            self.number(Gprime, b-k-j-i+1, a+i-1)
+                iter = 0
+                for n in range(b-k+1, b):
+                    v = sets[2][iter]
+                    iter += 1
+                    if v not in self.numbers.keys():
+                        self.numbers[v] = n
+                        for u in Gprime.neighbors(v):
+                            if u in sets[2]:
+                                Gprime.remove_edge(u, v)
+
+                union = sets[2].copy()
+                union.extend(sets[0])
+                sub = Gprime.subgraph(union)
+                stack.append((sub, a, a+i-1))
+
+                union = sets[2]
+                union.extend(sets[1])
+                sub = Gprime.subgraph(union)
+                stack.append((sub, b-k-j+1, b-k))
 
             
-    
+with open('100x100grid.npy', 'rb') as f:
+    A = np.load(f)
 
-A = np.array([
-  [0,1,1,0,1,0,0,0,0,0,0,1],
-  [1,0,0,1,0,1,1,0,0,0,0,0],
-  [1,0,0,1,0,0,0,0,0,1,1,0],
-  [0,1,1,0,0,0,0,1,1,0,0,0],
-  [1,0,0,0,0,1,0,0,0,0,0,1],
-  [0,1,0,0,1,0,1,0,0,0,0,0],
-  [0,1,0,0,0,1,0,1,0,0,0,0],
-  [0,0,0,1,0,0,1,0,1,0,0,0],
-  [0,0,0,1,0,0,0,1,0,1,0,0],
-  [0,0,1,0,0,0,0,0,1,0,1,0],
-  [0,0,1,0,0,0,0,0,0,1,0,1],
-  [1,0,0,0,1,0,0,0,0,0,1,0]
-])
 planar = PlanarEmbedding.Planar(A)
 dissection = NestedDissection(planar.G)
+
+print("length:", len(dissection.numbers))
+for n in dissection.numbers.values():
+    if n < 0 or n > 9999:
+        print(n)
