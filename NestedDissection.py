@@ -1,4 +1,6 @@
+import numbers
 import networkx as nx
+import matplotlib.pyplot as plt
 import numpy as np
 import PlanarEmbedding
 import math
@@ -7,6 +9,11 @@ class NestedDissection:
     def __init__(self, G) -> None:
         self.numbers = dict()
         self.number(G)
+        
+        self.fills = dict()
+        self.fill(G)
+
+        self.decomposition(G)
 
     def separate(self, G) -> list:
         nodes = list(G.nodes)
@@ -27,7 +34,7 @@ class NestedDissection:
             p = parent[vtx]
             lvl = levels[p] + 1
 
-            if lvl > prevLvl and len(levels) > n/2:
+            if lvl > prevLvl and len(levels) >= n/2:
                 break
 
             levels[vtx] = lvl
@@ -57,11 +64,11 @@ class NestedDissection:
 
     def number(self, G):
         alpha = 2./3
-        beta = 8
-        n0 = math.ceil(math.pow(beta/(1-alpha), 2))
-        print(n0)
+        beta = 6
+        n0 = math.pow(beta/(1-alpha), 2)
+        values = set()
 
-        stack = [(G, 1, G.number_of_nodes())]
+        stack = [(G, 0, G.number_of_nodes()-1)]
         used = set()
         while len(stack) > 0:
             triple = stack.pop()
@@ -78,8 +85,11 @@ class NestedDissection:
             if len(nodes) <= n0:
                 for v in nodes:
                     if v not in self.numbers.keys():
+                        while a in values:
+                            a += 1
                         self.numbers[v] = a
-                        a += 1
+                        values.add(a)
+                        
             else:
                 sets = self.separate(Gprime)
                 i = len(sets[0])
@@ -89,12 +99,15 @@ class NestedDissection:
                 iter = 0
                 for n in range(b-k+1, b):
                     v = sets[2][iter]
-                    iter += 1
                     if v not in self.numbers.keys():
-                        self.numbers[v] = n
+                        if n not in values:
+                            self.numbers[v] = n
+                            values.add(n)
+                            continue
                         for u in Gprime.neighbors(v):
                             if u in sets[2]:
                                 Gprime.remove_edge(u, v)
+                    iter += 1
 
                 union = sets[2].copy()
                 union.extend(sets[0])
@@ -105,15 +118,38 @@ class NestedDissection:
                 union.extend(sets[1])
                 sub = Gprime.subgraph(union)
                 stack.append((sub, b-k-j+1, b-k))
+    
+    def fill(self, G):
+        nodes = list(G.nodes)
+        for v in self.numbers.values():
+            nbrs = list(G.neighbors(nodes[v]))
+            m = self.numbers[nbrs[0]]
+            for vtx in nbrs:
+                m = min(self.numbers[vtx], m)
 
+            if m not in self.fills:
+                self.fills[m] = []
             
-with open('100x100grid.npy', 'rb') as f:
-    A = np.load(f)
+            for vtx in nbrs:
+                w = self.numbers[vtx]
+                if w != m:
+                    self.fills[m].append(w)
+            
+    def decomposition(self, G):
+        n = G.number_of_nodes()
+        L = np.zeros((n, n))
+        print(self.fills)
+        for i in self.fills.keys():
+            for j in self.fills[i]:
+                s = j/(float(i)+1)
+                for l in range(len(self.fills[i])):
+                    L[j, l] = L[j, l] - s * L[i, l]
+                L[i, j] = s
+        print(L)
+            
+#with open('100x100grid.npy', 'rb') as f:
+#    A = np.load(f)
 
-planar = PlanarEmbedding.Planar(A)
-dissection = NestedDissection(planar.G)
-
-print("length:", len(dissection.numbers))
-for n in dissection.numbers.values():
-    if n < 0 or n > 9999:
-        print(n)
+#planar = PlanarEmbedding.Planar(A)
+G = nx.grid_2d_graph(2, 2)
+dissection = NestedDissection(G)
