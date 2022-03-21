@@ -4,16 +4,12 @@ import PlanarEmbedding
 import networkx as nx
 import matplotlib.pyplot as plt
 import NestedDissection
+import Sparsification
 
 #--------- Create G ---------
-A = np.array([
-  [0, 1, 0, 1, 0, 0],
-  [1, 0, 1, 1, 0, 0],
-  [0, 1, 0, 0, 1, 1],
-  [1, 1, 0, 0, 1, 0],
-  [0, 0, 1, 1, 0, 1],
-  [0, 0, 1, 0, 1, 0.]
-])
+G = nx.grid_2d_graph(6, 6)
+Asparse = nx.adjacency_matrix(G)
+A = Asparse.todense()
 planar = PlanarEmbedding.Planar(A)
 
 #--------- Create T1 ---------
@@ -93,10 +89,13 @@ while len(q) > 0:
   q.extend(f.getAdjFaces())
 
 #--------- Output ---------
-nd = NestedDissection.NestedDissection()
-det = nd.determinant(planar.G)
+det = np.linalg.det(A)
 print("Determinant:", det)
 print("# of perf matches: ", round(math.sqrt(det)))
+
+B = Sparsification.sparsify(A, Asparse)
+det = np.linalg.det(B)
+print("Determinant from sparse matrix:", det)
 
 #n = np.shape(A)[0]
 #for i in range(n):
