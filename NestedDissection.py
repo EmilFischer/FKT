@@ -1,4 +1,3 @@
-import numbers
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,14 +5,14 @@ import PlanarEmbedding
 import math
 
 class NestedDissection:
-    def __init__(self, G) -> None:
-        self.numbers = dict()
-        self.number(G)
-        
-        self.fills = dict()
-        self.fill(G)
+    T1 = None
 
-        self.decomposition(G)
+    def __init__(self) -> None:
+        self.numbers = dict()
+        self.fills = dict()
+
+    def determinant(self, G):
+        self.number(G)
 
     def separate(self, G) -> list:
         nodes = list(G.nodes)
@@ -62,16 +61,42 @@ class NestedDissection:
 
         return [A, B, S]
 
+    treeIter = 0
+    lastparent = None
+    parent = None
+    fillLeft = True
+    def createTreeNode(self, A, B, separator):
+        node = Node(A, B, separator)
+
+        if self.treeIter == 0:
+            self.T1 = node
+            self.parent = self.T1
+            self.lastParent = self.T1
+        elif self.treeIter % 2 == 1:
+            self.parent.child1 = node
+        else:
+            self.parent.child2 = node
+            tmp = self.parent
+            if self.fillLeft:
+                self.parent = self.lastParent.child1
+            else:
+                self.parent = self.lastParent.child2
+                
+            self.lastParent = tmp
+            self.fillLeft = not self.fillLeft
+
+        self.treeIter += 1
+
     def number(self, G):
         alpha = 2./3
         beta = 6
         n0 = math.pow(beta/(1-alpha), 2)
         values = set()
 
-        stack = [(G, 0, G.number_of_nodes()-1)]
+        q = [(G, 0, G.number_of_nodes()-1)]
         used = set()
-        while len(stack) > 0:
-            triple = stack.pop()
+        while len(q) > 0:
+            triple = q.pop(0)
             Gprime = triple[0]
             nodes = list(Gprime.nodes)
 
@@ -96,6 +121,8 @@ class NestedDissection:
                 j = len(sets[1])
                 k = len(sets[2])
 
+                self.createTreeNode(sets[0], sets[1], sets[2])
+
                 iter = 0
                 for n in range(b-k+1, b):
                     v = sets[2][iter]
@@ -112,12 +139,12 @@ class NestedDissection:
                 union = sets[2].copy()
                 union.extend(sets[0])
                 sub = Gprime.subgraph(union)
-                stack.append((sub, a, a+i-1))
+                q.append((sub, a, a+i-1))
 
                 union = sets[2]
                 union.extend(sets[1])
                 sub = Gprime.subgraph(union)
-                stack.append((sub, b-k-j+1, b-k))
+                q.append((sub, b-k-j+1, b-k))
     
     def fill(self, G):
         nodes = list(G.nodes)
@@ -137,19 +164,46 @@ class NestedDissection:
             
     def decomposition(self, G):
         n = G.number_of_nodes()
-        L = np.zeros((n, n))
-        print(self.fills)
+        M = nx.adjacency_matrix(G)
+        LU = np.zeros((n, n))
         for i in self.fills.keys():
-            for j in self.fills[i]:
-                s = j/(float(i)+1)
-                for l in range(len(self.fills[i])):
-                    L[j, l] = L[j, l] - s * L[i, l]
-                L[i, j] = s
-        print(L)
+            for j in range(len(self.fills[i])):
+                k = self.fills[i][j]
+                s = M[i, k]
+                
+                for l in range(j, len(self.fills[i])):
+                    LU[k, l] = M[j, l] - s * M[i, l]
+                
+                LU[i, k] = s
+        return LU
             
+class Node:
+    child1 = None
+    child2 = None
+    A = None
+    B = None
+    separator = None
+
+    def __init__(self, A, B, separator):
+        self.A = A
+        self.B = B
+        self.separator = separator
+
+def sparseRepresentation(M):
+    n = np.shape(M)[0]
+    r = []
+    for i in range(n):
+        r.append([])
+        for j in range(n):
+            if M[i, j] != 0:
+                r[i].append((j, M[i, j]))
+    return r
+
 #with open('100x100grid.npy', 'rb') as f:
 #    A = np.load(f)
 
-#planar = PlanarEmbedding.Planar(A)
 G = nx.grid_2d_graph(2, 2)
-dissection = NestedDissection(G)
+M = nx.to_scipy_sparse_matrix(G)
+
+nd = NestedDissection()
+dissection = nd.determinant(G)

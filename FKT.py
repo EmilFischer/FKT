@@ -3,10 +3,17 @@ import numpy as np
 import PlanarEmbedding
 import networkx as nx
 import matplotlib.pyplot as plt
+import NestedDissection
 
 #--------- Create G ---------
-with open('100x100grid.npy', 'rb') as f:
-  A = np.load(f)
+A = np.array([
+  [0, 1, 0, 1, 0, 0],
+  [1, 0, 1, 1, 0, 0],
+  [0, 1, 0, 0, 1, 1],
+  [1, 1, 0, 0, 1, 0],
+  [0, 0, 1, 1, 0, 1],
+  [0, 0, 1, 0, 1, 0.]
+])
 planar = PlanarEmbedding.Planar(A)
 
 #--------- Create T1 ---------
@@ -86,7 +93,9 @@ while len(q) > 0:
   q.extend(f.getAdjFaces())
 
 #--------- Output ---------
-det = abs(np.linalg.det(A))
+nd = NestedDissection.NestedDissection()
+det = nd.determinant(planar.G)
+print("Determinant:", det)
 print("# of perf matches: ", round(math.sqrt(det)))
 
 #n = np.shape(A)[0]
