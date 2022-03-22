@@ -3,47 +3,38 @@ import networkx as nx
 from collections import deque
 import time
 
-def sparsify(B, sparse) -> np.array:
+def sparsify(A, sparse) -> np.array:
     #Create dict of the form: row index -> column indices with non-zero entry.
     #Example: F[42] -> [3, 8, 14], meaning row 42 has a non-zero at column 3, 8, and 14.
     F = dict()
-    lastRow = -1
-    columns = deque()
-    rowSet = set()
-    rowQ = deque()
+    lastRow = 0
+    rows = deque()
+
     R = sparse.tocoo()
-    n = np.shape(B)[0]-1
-    BOrder = n
+    n = A.shape[0]-1
+    order = n+1
 
     for (r, c) in zip(R.row, R.col):
+        if r not in F:
+            F[r] = deque()
+        F[r].append(c)
+
         if lastRow != r:
-            if len(columns) > 3:
-                F[lastRow] = columns
-                rowSet.add(lastRow)
-                rowQ.append(lastRow)
-                BOrder += (2*len(columns))-3
-            columns = deque()
-            lastRow = r
+            if len(F[lastRow]) > 3:
+                rows.append(lastRow)
+                order += (len(F[lastRow])-3)*2
+        lastRow = r
+        
+    if len(F[lastRow]) > 3:
+        rows.append(r)
 
-        columns.append(c)
+    #Pad B with zeros for sparsification
+    B = np.zeros((order, order))
+    B[:-order+n+1, :-order+n+1] = A
 
-    if len(columns) > 3:
-        F[lastRow] = columns
-        rowSet.add(lastRow)
-        rowQ.append(lastRow)
-        BOrder += len(columns)-3
-
-    zeros = np.zeros((BOrder, BOrder))
-    zeros[:-BOrder+n, :-BOrder+n] = B
-    B = zeros
-    
-    #Begin actual sparsification algorithm
-    lastRow = -1
-    nPlus1 = deque()
-    nPlus2 = deque()
-
-    while len(rowSet) > 0:
-        i = rowQ[0]
+    #Begin actual sparsification
+    while len(rows) > 0:
+        i = rows[0]
 
         #Identify two destinct indices that contain a non-zero in row i
         u = F[i].popleft()
@@ -59,23 +50,8 @@ def sparsify(B, sparse) -> np.array:
         B_vi = B[v, i]
         B[u, i] = 0
         B[v, i] = 0
-        
-        t0 = time.time()
-        #Add two rows and columns (n = size of B-1, cus of indexing)
-        zeros = np.zeros(n+1)
-        B = np.c_[B, zeros, zeros] #Adding two zero columns
 
-        zeros = np.zeros(n+3)
-        B = np.append(B, [zeros, zeros], axis=0) #Adding two zero rows
-        t1 = time.time()
-        total = t1-t0
-        if total >= 1:
-            print("Adding rows and cols:", total)
-
-        F[n+1] = deque()
-        F[n+2] = deque()
-
-        #Set newly added entries
+        #Set n+1 and n+2 entries
         B[n+1, i]   = -1
         B[n+1, n+2] = 1
         
@@ -88,59 +64,34 @@ def sparsify(B, sparse) -> np.array:
         B[u, n+2] = B_ui
         B[v, n+2] = B_vi
 
-        #Update F according to changes in row i, u, v, n+1, and n+2
+        #Update rows i, u, and v in F
         F[i].append(n+1)
         
-        if u in rowSet:
+        if u in F:
             F[u].remove(i)
             F[u].append(n+2)
 
-        if v in rowSet:
+        if v in F:
             F[v].remove(i)
             F[v].append(n+2)
 
-        #Update F with rows n+1 and n+2 if it contains > 3 non-zeros
-        if lastRow != i:
-            if len(nPlus1) > 3:
-                F[n+1] = nPlus1
-                rowQ.append(n+1)
-                rowSet.add(n+1)
-
-                F[n+2] = nPlus2
-                rowQ.append(n+2)
-                rowSet.add(n+2)
-
-            nPlus1 = deque()
-            nPlus2 = deque()
-            lastRow = i
-
-        #Hold non-zero elements in rows n+1 and n+2
-        nPlus1.append(i)
-        nPlus1.append(n+2)
-
-        nPlus2.append(u)
-        nPlus2.append(v)
-        nPlus2.append(n+1)
-
-        #Remove # row indices with > 3 non-zeros
+        #Go to next row if it contains < 4 non-zeros
         if len(F[i]) < 4:
-            rowSet.remove(i)
-            rowQ.popleft()
+            rows.popleft()
 
         #Set the new size of the matrix for next iteration
         n += 2
-
+    
     return B
 
-G = nx.grid_2d_graph(25, 25)
-M = nx.to_scipy_sparse_matrix(G)
-B = sparsify(M.todense(), M)
-shape = np.shape(B)
-n = shape[0]
-order = n + 2*M.shape[0]
-print(order)
-print(shape)
+#G = nx.grid_2d_graph(100, 100)
+#M = nx.to_scipy_sparse_matrix(G)
+#B = sparsify(M.todense(), M)
 
+#n = B.shape[0]
+#print("n:", n)
+
+#For checking all rows/columns have <= 3 non-zeros
 #for i in range(n):
 #    c = 0
 #    for j in range(n):

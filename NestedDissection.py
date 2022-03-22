@@ -13,6 +13,13 @@ class NestedDissection:
 
     def determinant(self, G):
         self.number(G)
+        self.fill(G)
+        LU = self.decomposition(G)
+
+        det = 1
+        for i in range(LU.shape[0]):
+            det *= LU[i, i]
+        return det
 
     def separate(self, G) -> list:
         nodes = list(G.nodes)
@@ -189,21 +196,8 @@ class Node:
         self.B = B
         self.separator = separator
 
-def sparseRepresentation(M):
-    n = np.shape(M)[0]
-    r = []
-    for i in range(n):
-        r.append([])
-        for j in range(n):
-            if M[i, j] != 0:
-                r[i].append((j, M[i, j]))
-    return r
+#G = nx.grid_2d_graph(2, 2)
+#M = nx.to_scipy_sparse_matrix(G)
 
-#with open('100x100grid.npy', 'rb') as f:
-#    A = np.load(f)
-
-G = nx.grid_2d_graph(2, 2)
-M = nx.to_scipy_sparse_matrix(G)
-
-nd = NestedDissection()
-dissection = nd.determinant(G)
+#nd = NestedDissection()
+#dissection = nd.determinant(G)

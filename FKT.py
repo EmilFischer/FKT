@@ -7,7 +7,7 @@ import NestedDissection
 import Sparsification
 
 #--------- Create G ---------
-G = nx.grid_2d_graph(6, 6)
+G = nx.grid_2d_graph(20, 20)
 Asparse = nx.adjacency_matrix(G)
 A = Asparse.todense()
 planar = PlanarEmbedding.Planar(A)
@@ -89,13 +89,20 @@ while len(q) > 0:
   q.extend(f.getAdjFaces())
 
 #--------- Output ---------
+#Naive computation of determinant
 det = np.linalg.det(A)
 print("Determinant:", det)
 print("# of perf matches: ", round(math.sqrt(det)))
 
-B = Sparsification.sparsify(A, Asparse)
-det = np.linalg.det(B)
-print("Determinant from sparse matrix:", det)
+#Nested dissection computation of determinant
+#B = Sparsification.sparsify(A, Asparse)
+#Gprime = nx.from_numpy_matrix(B)
+#nd = NestedDissection.NestedDissection()
+#det = nd.determinant(Gprime)
+#print("Determinant:", det)
+#print("# of perf matches: ", round(math.sqrt(det)))
+
+
 
 #n = np.shape(A)[0]
 #for i in range(n):
