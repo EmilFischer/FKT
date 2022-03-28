@@ -1,7 +1,6 @@
 import numpy as np
 import networkx as nx
 from collections import deque
-import time
 
 def sparsify(A, sparse) -> np.array:
     #Create dict of the form: row index -> column indices with non-zero entry.
@@ -27,6 +26,7 @@ def sparsify(A, sparse) -> np.array:
         
     if len(F[lastRow]) > 3:
         rows.append(r)
+        order += (len(F[lastRow])-3)*2
 
     #Pad B with zeros for sparsification
     B = np.zeros((order, order))

@@ -5,9 +5,10 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import NestedDissection
 import Sparsification
+import scipy.linalg
 
 #--------- Create G ---------
-G = nx.grid_2d_graph(20, 20)
+G = nx.grid_2d_graph(6, 6)
 Asparse = nx.adjacency_matrix(G)
 A = Asparse.todense()
 planar = PlanarEmbedding.Planar(A)
@@ -90,17 +91,23 @@ while len(q) > 0:
 
 #--------- Output ---------
 #Naive computation of determinant
-det = np.linalg.det(A)
+det = round(np.linalg.det(A))
+print("NAIVE APPROACH:")
 print("Determinant:", det)
-print("# of perf matches: ", round(math.sqrt(det)))
+print("# of perf matches:", round(math.sqrt(det)))
+print("____________________________")
 
 #Nested dissection computation of determinant
-#B = Sparsification.sparsify(A, Asparse)
-#Gprime = nx.from_numpy_matrix(B)
-#nd = NestedDissection.NestedDissection()
-#det = nd.determinant(Gprime)
-#print("Determinant:", det)
-#print("# of perf matches: ", round(math.sqrt(det)))
+print("NESTED DISSECTION:")
+B = Sparsification.sparsify(A, Asparse)
+BBt = np.matmul(B, B.transpose())
+
+Gprime = nx.from_numpy_matrix(BBt)
+nd = NestedDissection.NestedDissection()
+det = nd.determinant(Gprime)
+
+print("Determinant:", det)
+print("# of perf matches:", round(math.sqrt(det)))
 
 
 

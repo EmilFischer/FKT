@@ -15,11 +15,16 @@ class NestedDissection:
         self.number(G)
         self.fill(G)
         LU = self.decomposition(G)
-
+        for i in range(LU.shape[0]):
+            for j in range(i):
+                if LU[i, j] != 0:
+                    print(i,j, LU[i,j])
+        
         det = 1
         for i in range(LU.shape[0]):
+            if LU[i, i] == 0: continue
             det *= LU[i, i]
-        return det
+        return math.isqrt(round(abs(det)))
 
     def separate(self, G) -> list:
         nodes = list(G.nodes)
@@ -175,13 +180,14 @@ class NestedDissection:
         LU = np.zeros((n, n))
         for i in self.fills.keys():
             for j in range(len(self.fills[i])):
-                k = self.fills[i][j]
-                s = M[i, k]
+                J = self.fills[i][j]
+                s = M[i, J] / M[i, i]
                 
                 for l in range(j, len(self.fills[i])):
-                    LU[k, l] = M[j, l] - s * M[i, l]
+                    L = self.fills[i][l]
+                    M[J, L] = M[j, L] - s * M[i, L]
                 
-                LU[i, k] = s
+                LU[i, J] = s
         return LU
             
 class Node:
