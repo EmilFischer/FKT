@@ -11,19 +11,15 @@ class NestedDissection:
         self.numbers = dict()
         self.fills = dict()
 
-    def determinant(self, G):
+    def determinant(self, G, M):
         self.number(G)
         self.fill(G)
-        LU = self.decomposition(G)
-        for i in range(LU.shape[0]):
-            for j in range(i):
-                if LU[i, j] != 0:
-                    print(i,j, LU[i,j])
+        LU = self.decomposition(M)
         
-        det = 1
+        det = 1.0
         for i in range(LU.shape[0]):
-            if LU[i, i] == 0: continue
             det *= LU[i, i]
+
         return math.isqrt(round(abs(det)))
 
     def separate(self, G) -> list:
@@ -159,9 +155,9 @@ class NestedDissection:
                 q.append((sub, b-k-j+1, b-k))
     
     def fill(self, G):
-        nodes = list(G.nodes)
-        for v in self.numbers.values():
-            nbrs = list(G.neighbors(nodes[v]))
+        for node in range(G.number_of_nodes()):
+            v = self.numbers[node]
+            nbrs = list(G.neighbors(v))
             m = self.numbers[nbrs[0]]
             for vtx in nbrs:
                 m = min(self.numbers[vtx], m)
@@ -174,21 +170,22 @@ class NestedDissection:
                 if w != m:
                     self.fills[m].append(w)
             
-    def decomposition(self, G):
-        n = G.number_of_nodes()
-        M = nx.adjacency_matrix(G)
-        LU = np.zeros((n, n))
-        for i in self.fills.keys():
-            for j in range(len(self.fills[i])):
+    def decomposition(self, M):
+        n = M.shape[0]
+        U = np.zeros((n, n))
+        
+        for i in self.fills:
+            for j in range(i+1, len(self.fills[i])):
                 J = self.fills[i][j]
-                s = M[i, J] / M[i, i]
+                s = M[i, J]/M[i, i]
                 
-                for l in range(j, len(self.fills[i])):
+                for l in range(j+1, len(self.fills[i])):
                     L = self.fills[i][l]
-                    M[J, L] = M[j, L] - s * M[i, L]
+                    U[j, L] -= s * M[i, L]
                 
-                LU[i, J] = s
-        return LU
+                U[i, J] = s
+        
+        return U
             
 class Node:
     child1 = None

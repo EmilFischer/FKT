@@ -1,3 +1,4 @@
+from decimal import Decimal
 import math
 import numpy as np
 import PlanarEmbedding
@@ -5,10 +6,10 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import NestedDissection
 import Sparsification
-import scipy.linalg
+import scipy.sparse.linalg
 
 #--------- Create G ---------
-G = nx.grid_2d_graph(6, 6)
+G = nx.grid_2d_graph(4, 4)
 Asparse = nx.adjacency_matrix(G)
 A = Asparse.todense()
 planar = PlanarEmbedding.Planar(A)
@@ -104,10 +105,11 @@ BBt = np.matmul(B, B.transpose())
 
 Gprime = nx.from_numpy_matrix(BBt)
 nd = NestedDissection.NestedDissection()
-det = nd.determinant(Gprime)
+det = nd.determinant(Gprime, BBt)
 
 print("Determinant:", det)
 print("# of perf matches:", round(math.sqrt(det)))
+print()
 
 
 
