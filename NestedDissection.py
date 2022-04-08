@@ -1,25 +1,50 @@
+from tkinter.ttk import Separator
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 import PlanarEmbedding
 import math
+from decimal import *
+from scipy.linalg import lu
+import bisect
 
 class NestedDissection:
     T1 = None
 
     def __init__(self) -> None:
         self.numbers = dict()
+        self.numbersInv = dict()
         self.fills = dict()
 
     def determinant(self, G, M):
-        self.number(G)
-        self.fill(G)
-        LU = self.decomposition(M)
-        
-        det = 1.0
-        for i in range(LU.shape[0]):
-            det *= LU[i, i]
+        _, _, U = lu(M)
+        actualFillIns = []
+        for i in range(M.shape[0]):
+            for j in range(i, M.shape[0]):
+                if U[i, j] != 0 and M[i, j] == 0:
+                    actualFillIns.append((i, j))
 
+
+        self.number(G)
+
+        for i in self.numbers:
+            if i < 0 or i > 343:
+                print("Oh no!", i)
+
+        self.fill(G)
+        
+        c = 0
+        for p in actualFillIns:
+            if p[1] not in self.fills[p[0]]:
+                c += 1
+        print("# unidentified fill ins:", c)
+
+        U = self.decomposition(M)
+
+        det = Decimal(1)
+        for i in range(U.shape[0]):
+            det *= Decimal(U[i, i])
+        
         return math.isqrt(round(abs(det)))
 
     def separate(self, G) -> list:
@@ -67,44 +92,29 @@ class NestedDissection:
             else:
                 B.append(x)
 
+        SNbrs = set()
+        for v in S:
+            for nbr in G.neighbors(v):
+                if nbr not in S:
+                    SNbrs.add(nbr)
+                    if nbr in A:
+                        A.remove(nbr)
+                    elif nbr in B:
+                        B.remove(nbr)
+        S.extend(SNbrs)
+
         return [A, B, S]
-
-    treeIter = 0
-    lastparent = None
-    parent = None
-    fillLeft = True
-    def createTreeNode(self, A, B, separator):
-        node = Node(A, B, separator)
-
-        if self.treeIter == 0:
-            self.T1 = node
-            self.parent = self.T1
-            self.lastParent = self.T1
-        elif self.treeIter % 2 == 1:
-            self.parent.child1 = node
-        else:
-            self.parent.child2 = node
-            tmp = self.parent
-            if self.fillLeft:
-                self.parent = self.lastParent.child1
-            else:
-                self.parent = self.lastParent.child2
-                
-            self.lastParent = tmp
-            self.fillLeft = not self.fillLeft
-
-        self.treeIter += 1
 
     def number(self, G):
         alpha = 2./3
         beta = 6
-        n0 = math.pow(beta/(1-alpha), 2)
+        n0 = round(math.pow(beta/(1-alpha), 2))
         values = set()
 
-        q = [(G, 0, G.number_of_nodes()-1)]
+        stack = [(G, 0, G.number_of_nodes()-1)]
         used = set()
-        while len(q) > 0:
-            triple = q.pop(0)
+        while len(stack) > 0:
+            triple = stack.pop()
             Gprime = triple[0]
             nodes = list(Gprime.nodes)
 
@@ -121,86 +131,72 @@ class NestedDissection:
                         while a in values:
                             a += 1
                         self.numbers[v] = a
+                        self.numbersInv[a] = v
                         values.add(a)
                         
             else:
+                Gprime = nx.Graph(Gprime)
                 sets = self.separate(Gprime)
                 i = len(sets[0])
                 j = len(sets[1])
                 k = len(sets[2])
 
-                self.createTreeNode(sets[0], sets[1], sets[2])
-
-                iter = 0
-                for n in range(b-k+1, b):
-                    v = sets[2][iter]
+                n = b-k+1
+                for v in sets[2]:
                     if v not in self.numbers.keys():
-                        if n not in values:
-                            self.numbers[v] = n
-                            values.add(n)
-                            continue
-                        for u in Gprime.neighbors(v):
+                        while n in values:
+                            n += 1
+                            
+                        self.numbers[v] = n
+                        self.numbersInv[n] = v
+                        values.add(n)
+
+                        nbrs = list(Gprime.neighbors(v))
+                        for u in nbrs:
                             if u in sets[2]:
                                 Gprime.remove_edge(u, v)
-                    iter += 1
+
+                union = sets[2].copy()
+                union.extend(sets[1])
+                sub = Gprime.subgraph(union)
+                stack.append((sub, b-k-j+1, b-k))
 
                 union = sets[2].copy()
                 union.extend(sets[0])
                 sub = Gprime.subgraph(union)
-                q.append((sub, a, a+i-1))
-
-                union = sets[2]
-                union.extend(sets[1])
-                sub = Gprime.subgraph(union)
-                q.append((sub, b-k-j+1, b-k))
+                stack.append((sub, a, a+i-1))
     
     def fill(self, G):
-        for node in range(G.number_of_nodes()):
-            v = self.numbers[node]
-            nbrs = list(G.neighbors(v))
-            m = self.numbers[nbrs[0]]
-            for vtx in nbrs:
-                m = min(self.numbers[vtx], m)
+        n = G.number_of_nodes()
+        for i in range(n):
+            self.fills[i] = []
+            for nbr in G.neighbors(i):
+                if nbr > i:
+                    self.fills[i].append(nbr)
+        
+        for i in range(n):
+            v = self.numbers[i]
+            nbrs = self.fills[v]
+            if len(nbrs) < 1:
+                continue
 
-            if m not in self.fills:
-                self.fills[m] = []
-            
+            m = nbrs[0]
             for vtx in nbrs:
-                w = self.numbers[vtx]
-                if w != m:
-                    self.fills[m].append(w)
+                m = min(vtx, m)
+
+            for w in nbrs:
+                if w != m and w not in self.fills[m]:
+                    bisect.insort(self.fills[m], w)
             
     def decomposition(self, M):
-        n = M.shape[0]
-        U = np.zeros((n, n))
-        
-        for i in self.fills:
-            for j in range(i+1, len(self.fills[i])):
-                J = self.fills[i][j]
-                s = M[i, J]/M[i, i]
+        for i in range(M.shape[0]):
+            for j in self.fills[i]:
+                s = M[i, j] / M[i, i]
+
+                for l in set(self.fills[i] + self.fills[j]):
+                    if l < j: continue
+                    M[j, l] = M[j, l] - s * M[i, l]
                 
-                for l in range(j+1, len(self.fills[i])):
-                    L = self.fills[i][l]
-                    U[j, L] -= s * M[i, L]
-                
-                U[i, J] = s
+                M[i, j] = s
         
-        return U
-            
-class Node:
-    child1 = None
-    child2 = None
-    A = None
-    B = None
-    separator = None
-
-    def __init__(self, A, B, separator):
-        self.A = A
-        self.B = B
-        self.separator = separator
-
-#G = nx.grid_2d_graph(2, 2)
-#M = nx.to_scipy_sparse_matrix(G)
-
-#nd = NestedDissection()
-#dissection = nd.determinant(G)
+        return M

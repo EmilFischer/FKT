@@ -7,7 +7,7 @@ def sparsify(A, sparse) -> np.array:
     #Example: F[42] -> [3, 8, 14], meaning row 42 has a non-zero at column 3, 8, and 14.
     F = dict()
     lastRow = 0
-    rows = deque()
+    rows = deque() #List of rows that contain more than three non-zeros
 
     R = sparse.tocoo()
     n = A.shape[0]-1
@@ -27,6 +27,10 @@ def sparsify(A, sparse) -> np.array:
     if len(F[lastRow]) > 3:
         rows.append(r)
         order += (len(F[lastRow])-3)*2
+
+    #If the matrix is already sparsified, return it
+    if len(rows) < 1:
+        return A
 
     #Pad B with zeros for sparsification
     B = np.zeros((order, order))
@@ -81,7 +85,7 @@ def sparsify(A, sparse) -> np.array:
 
         #Set the new size of the matrix for next iteration
         n += 2
-    
+
     return B
 
 #G = nx.grid_2d_graph(100, 100)
