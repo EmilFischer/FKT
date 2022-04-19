@@ -17,29 +17,16 @@ class NestedDissection:
         self.fills = dict()
 
     def determinant(self, G, M):
-        _, _, U = lu(M)
-        actualFillIns = []
-        for i in range(M.shape[0]):
-            for j in range(i, M.shape[0]):
-                if U[i, j] != 0 and M[i, j] == 0:
-                    actualFillIns.append((i, j))
-
-
+        print("n:", G.number_of_nodes())
+        
         self.number(G)
-
-        for i in self.numbers:
-            if i < 0 or i > 343:
-                print("Oh no!", i)
+        print("Numbering found.")
 
         self.fill(G)
-        
-        c = 0
-        for p in actualFillIns:
-            if p[1] not in self.fills[p[0]]:
-                c += 1
-        print("# unidentified fill ins:", c)
+        print("Fill-ins found.")
 
         U = self.decomposition(M)
+        print("Decomposition found.")
 
         det = Decimal(1)
         for i in range(U.shape[0]):
@@ -92,27 +79,29 @@ class NestedDissection:
             else:
                 B.append(x)
 
+        #Extend seperator to include neighborhood
         SNbrs = set()
         for v in S:
             for nbr in G.neighbors(v):
-                if nbr not in S:
+                if nbr not in S and nbr not in SNbrs:
                     SNbrs.add(nbr)
                     if nbr in A:
                         A.remove(nbr)
-                    elif nbr in B:
+                    else:
                         B.remove(nbr)
-        S.extend(SNbrs)
+        S.extend(SNbrs) 
 
         return [A, B, S]
 
     def number(self, G):
+        values = set()
+        stack = [(G, 0, G.number_of_nodes()-1)]
+        used = set()
+
         alpha = 2./3
         beta = 6
         n0 = round(math.pow(beta/(1-alpha), 2))
-        values = set()
 
-        stack = [(G, 0, G.number_of_nodes()-1)]
-        used = set()
         while len(stack) > 0:
             triple = stack.pop()
             Gprime = triple[0]
@@ -127,7 +116,7 @@ class NestedDissection:
 
             if len(nodes) <= n0:
                 for v in nodes:
-                    if v not in self.numbers.keys():
+                    if v not in self.numbers:
                         while a in values:
                             a += 1
                         self.numbers[v] = a
@@ -135,13 +124,13 @@ class NestedDissection:
                         values.add(a)
                         
             else:
-                Gprime = nx.Graph(Gprime)
                 sets = self.separate(Gprime)
                 i = len(sets[0])
                 j = len(sets[1])
                 k = len(sets[2])
 
                 n = b-k+1
+                neighborhood = set()
                 for v in sets[2]:
                     if v not in self.numbers.keys():
                         while n in values:
@@ -150,29 +139,35 @@ class NestedDissection:
                         self.numbers[v] = n
                         self.numbersInv[n] = v
                         values.add(n)
-
-                        nbrs = list(Gprime.neighbors(v))
+                        
+                        nbrs = Gprime.neighbors(v)
                         for u in nbrs:
-                            if u in sets[2]:
-                                Gprime.remove_edge(u, v)
+                            if u in sets[2] and (v, u) not in neighborhood:
+                                neighborhood.add((u, v))
 
-                union = sets[2].copy()
-                union.extend(sets[1])
-                sub = Gprime.subgraph(union)
-                stack.append((sub, b-k-j+1, b-k))
+                Gprime = nx.Graph(Gprime)
+                for nbr in neighborhood:
+                    Gprime.remove_edge(nbr[0], nbr[1])
 
                 union = sets[2].copy()
                 union.extend(sets[0])
                 sub = Gprime.subgraph(union)
                 stack.append((sub, a, a+i-1))
-    
+
+                union = sets[2]
+                union.extend(sets[1])
+                sub = Gprime.subgraph(union)
+                stack.append((sub, b-k-j+1, b-k))
+
     def fill(self, G):
         n = G.number_of_nodes()
         for i in range(n):
-            self.fills[i] = []
+            v = self.numbers[i]
+            self.fills[v] = []
             for nbr in G.neighbors(i):
                 if nbr > i:
-                    self.fills[i].append(nbr)
+                    nbr = self.numbers[nbr]
+                    self.fills[v].append(nbr)
         
         for i in range(n):
             v = self.numbers[i]
@@ -180,20 +175,28 @@ class NestedDissection:
             if len(nbrs) < 1:
                 continue
 
-            m = nbrs[0]
+            m = self.numbersInv[nbrs[0]]
             for vtx in nbrs:
-                m = min(vtx, m)
+                m = min(self.numbersInv[vtx], m)
+            m = self.numbers[m]
 
             for w in nbrs:
                 if w != m and w not in self.fills[m]:
-                    bisect.insort(self.fills[m], w)
-            
+                    self.fills[m].append(w)
+
     def decomposition(self, M):
-        for i in range(M.shape[0]):
+        fills = dict()
+        for i in self.fills:
+            I = self.numbersInv[i]
+            fills[I] = []
             for j in self.fills[i]:
+                bisect.insort(fills[I], self.numbersInv[j])
+        
+        for i in range(M.shape[0]):
+            for j in fills[i]:
                 s = M[i, j] / M[i, i]
 
-                for l in set(self.fills[i] + self.fills[j]):
+                for l in fills[i]:
                     if l < j: continue
                     M[j, l] = M[j, l] - s * M[i, l]
                 

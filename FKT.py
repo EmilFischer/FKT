@@ -16,6 +16,20 @@ Asparse = nx.adjacency_matrix(G)
 A = Asparse.todense()
 planar = PlanarEmbedding.Planar(A)
 
+#A = np.array([
+#  [0,1,1,0,1,0,0,1],
+#  [1,0,0,1,1,1,0,0],
+#  [1,0,0,1,0,0,1,1],
+#  [0,1,1,0,0,1,1,0],
+#  [1,1,0,0,0,0,0,0],
+#  [0,1,0,1,0,0,0,0],
+#  [0,0,1,1,0,0,0,0],
+#  [1,0,1,0,0,0,0,0]
+#])
+#planar = PlanarEmbedding.Planar(A)
+#G = planar.G
+#Asparse = nx.adjacency_matrix(G)
+
 #--------- Create T1 ---------
 t1 = planar.getSpanningTree()
 t1Edges = list(t1.edges)
@@ -112,8 +126,6 @@ det = nd.determinant(Gprime, BBt)
 print("Determinant:", det)
 print("# of perf matches:", round(math.sqrt(det)))
 print()
-
-
 
 #n = np.shape(A)[0]
 #for i in range(n):
