@@ -17,22 +17,16 @@ class NestedDissection:
         self.fills = dict()
 
     def determinant(self, G, M):
-        print("n:", G.number_of_nodes())
-        
         self.number(G)
-        print("Numbering found.")
-
         self.fill(G)
-        print("Fill-ins found.")
-
         U = self.decomposition(M)
-        print("Decomposition found.")
 
         det = Decimal(1)
         for i in range(U.shape[0]):
             det *= Decimal(U[i, i])
+        det = abs(det)
         
-        return math.isqrt(round(abs(det)))
+        return det.sqrt()
 
     def separate(self, G) -> list:
         nodes = list(G.nodes)
@@ -78,18 +72,6 @@ class NestedDissection:
                     A.append(x)
             else:
                 B.append(x)
-
-        #Extend seperator to include neighborhood
-        SNbrs = set()
-        for v in S:
-            for nbr in G.neighbors(v):
-                if nbr not in S and nbr not in SNbrs:
-                    SNbrs.add(nbr)
-                    if nbr in A:
-                        A.remove(nbr)
-                    else:
-                        B.remove(nbr)
-        S.extend(SNbrs) 
 
         return [A, B, S]
 
@@ -168,7 +150,7 @@ class NestedDissection:
                 if nbr > i:
                     nbr = self.numbers[nbr]
                     self.fills[v].append(nbr)
-        
+
         for i in range(n):
             v = self.numbers[i]
             nbrs = self.fills[v]

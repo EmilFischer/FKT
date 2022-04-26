@@ -1,6 +1,5 @@
-from decimal import Decimal
+from decimal import Decimal, getcontext
 import math
-import numpy as np
 import PlanarEmbedding
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -8,13 +7,23 @@ import NestedDissection
 import Sparsification
 import scipy.sparse as sparse
 import MultiplyByTranspose as MbT
+import os
+import scipy.linalg
+from sympy import Matrix
 from scipy.linalg import lu
+from decimal import *
+
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+import numpy as np
 
 #--------- Create G ---------
-G = nx.grid_2d_graph(12, 12)
-Asparse = nx.adjacency_matrix(G)
-A = Asparse.todense()
+G = nx.grid_2d_graph(10, 10)
+A = nx.to_numpy_array(G)
+
 planar = PlanarEmbedding.Planar(A)
+G = planar.planar
+Asparse = nx.adjacency_matrix(G)
+A = nx.to_numpy_array(G)
 
 #A = np.array([
 #  [0,1,1,0,1,0,0,1],
@@ -55,16 +64,17 @@ q = [planar.detectFaces()]
 used = set()
 while len(q) > 0:
   f = q.pop(0)
+
   if (f in used):
     continue
-  
+
   t2[f] = set()
   edges = f.getEdges()
   for adj in f.getAdjFaces():
     for e in adj.getEdges():
       if e in notInT1 and e in edges: 
         t2[f].add(adj)
-  
+
   used.add(f)
   q.extend(f.getAdjFaces())
 
@@ -108,23 +118,45 @@ while len(q) > 0:
 
 #--------- Output ---------
 #Naive computation of determinant
-det = round(np.linalg.det(A))
-print("NAIVE APPROACH:")
+print("NUMPY DET COMPUTATION:")
+det = np.linalg.det(A)
+det = int(det)
+
 print("Determinant:", det)
-print("# of perf matches:", round(math.sqrt(det)))
+print("# of perf matches:", int(math.sqrt(det)))
+print("____________________________\n")
+
+print("SCIPY DET COMPUTATION:")
+det = scipy.linalg.det(A)
+det = int(det)
+
+print("Determinant:", det)
+print("# of perf matches:", int(math.sqrt(det)))
+print("____________________________\n")
+
+print("SCIPY LU DECOMPOSITION:")
+_, _, U = lu(A)
+getcontext().prec = 50
+det = Decimal(1)
+for i in range(U.shape[0]):
+  det *= Decimal(U[i, i])
+det = abs(det)
+
+print("Determinant:", int(det))
+print("# of perf matches:", int(det.sqrt()))
 print("____________________________\n")
 
 #Nested dissection computation of determinant
 print("NESTED DISSECTION:")
 B = Sparsification.sparsify(A, Asparse)
 BBt = np.matmul(B, B.transpose())
-
 Gprime = nx.from_numpy_matrix(BBt)
+
 nd = NestedDissection.NestedDissection()
 det = nd.determinant(Gprime, BBt)
 
-print("Determinant:", det)
-print("# of perf matches:", round(math.sqrt(det)))
+print("Determinant:", int(det))
+print("# of perf matches:", int(det.sqrt()))
 print()
 
 #n = np.shape(A)[0]
