@@ -17,10 +17,35 @@ class NestedDissection:
         self.fills = dict()
 
     def determinant(self, G, M):
-        self.number(G)
-        self.fill(G)
-        U = self.decomposition(M)
+        n = M.shape[0]
+        print("n:", n)
+        print("Edges:", G.number_of_edges())
 
+        self.number(G)
+        print("Numbers found!")
+        print("Length of numbers:", len(self.numbers))
+        c = 0
+        for i in range(n):
+            if self.numbers[i] != i:
+                c += 1
+        print("Different numbers:", c)
+
+        self.fill(G)
+        print("Fill-ins found!")
+
+        c = 0
+        q = 0
+        for i in range(n):
+            l = len(self.fills[i])
+            c += l
+            q = max(q, l)
+        print("Edges + fill-ins:", c)
+        print("Most edges + fill-ins in row:", q)
+
+        U = self.decomposition(M, G)
+        print("Decomposition found!")
+
+        getcontext().prec = 100
         det = Decimal(1)
         for i in range(U.shape[0]):
             det *= Decimal(U[i, i])
@@ -30,14 +55,15 @@ class NestedDissection:
 
     def separate(self, G) -> list:
         nodes = list(G.nodes)
-        source = nodes[0]
         n = len(nodes)
         
+        largestCC = max(nx.connected_components(G), key=len)
+        source = next(iter(largestCC))
+
         levels = {source: 0}
         prevLvl = 0
         q = list(G.neighbors(source))
-        parent = dict()
-        parent[source] = source
+        parent = {source: source}
         for x in q:
             parent[x] = source
 
@@ -53,12 +79,10 @@ class NestedDissection:
             levels[vtx] = lvl
             prevLvl = lvl
 
-            nbrs = list(G.neighbors(vtx))
-            keys = parent.keys()
-            for x in nbrs:
-                if x not in keys:
-                    parent[x] = vtx
-                    q.append(x)
+            for nbr in G.neighbors(vtx):
+                if nbr not in parent:
+                    parent[nbr] = vtx
+                    q.append(nbr)
 
         A = []
         B = []
@@ -72,6 +96,18 @@ class NestedDissection:
                     A.append(x)
             else:
                 B.append(x)
+
+        SNeighborhood = set()
+        for v in S:
+            for u in G.neighbors(v):
+                if u in A:
+                    SNeighborhood.add(u)
+                    A.remove(u)
+                elif u in B:
+                    SNeighborhood.add(u)
+                    B.remove(u)
+
+        S.extend(SNeighborhood)
 
         return [A, B, S]
 
@@ -104,7 +140,6 @@ class NestedDissection:
                         self.numbers[v] = a
                         self.numbersInv[a] = v
                         values.add(a)
-                        
             else:
                 sets = self.separate(Gprime)
                 i = len(sets[0])
@@ -112,9 +147,9 @@ class NestedDissection:
                 k = len(sets[2])
 
                 n = b-k+1
-                neighborhood = set()
+                Gprime = nx.Graph(Gprime)
                 for v in sets[2]:
-                    if v not in self.numbers.keys():
+                    if v not in self.numbers:
                         while n in values:
                             n += 1
                             
@@ -122,14 +157,10 @@ class NestedDissection:
                         self.numbersInv[n] = v
                         values.add(n)
                         
-                        nbrs = Gprime.neighbors(v)
+                        nbrs = list(Gprime.neighbors(v))
                         for u in nbrs:
-                            if u in sets[2] and (v, u) not in neighborhood:
-                                neighborhood.add((u, v))
-
-                Gprime = nx.Graph(Gprime)
-                for nbr in neighborhood:
-                    Gprime.remove_edge(nbr[0], nbr[1])
+                            if u in sets[2]:
+                                Gprime.remove_edge(u, v)
 
                 union = sets[2].copy()
                 union.extend(sets[0])
@@ -166,7 +197,7 @@ class NestedDissection:
                 if w != m and w not in self.fills[m]:
                     self.fills[m].append(w)
 
-    def decomposition(self, M):
+    def decomposition(self, M, G):
         fills = dict()
         for i in self.fills:
             I = self.numbersInv[i]
@@ -177,7 +208,7 @@ class NestedDissection:
         for i in range(M.shape[0]):
             for j in fills[i]:
                 s = M[i, j] / M[i, i]
-
+                
                 for l in fills[i]:
                     if l < j: continue
                     M[j, l] = M[j, l] - s * M[i, l]

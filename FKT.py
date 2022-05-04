@@ -9,7 +9,7 @@ import scipy.sparse as sparse
 import MultiplyByTranspose as MbT
 import os
 import scipy.linalg
-from sympy import Matrix
+from sympy import *
 from scipy.linalg import lu
 from decimal import *
 
@@ -17,7 +17,7 @@ os.environ['OPENBLAS_NUM_THREADS'] = '1'
 import numpy as np
 
 #--------- Create G ---------
-G = nx.grid_2d_graph(10, 10)
+G = nx.grid_2d_graph(14, 14)
 A = nx.to_numpy_array(G)
 
 planar = PlanarEmbedding.Planar(A)
@@ -62,11 +62,16 @@ for v1, v2 in planar.edges:
 t2 = dict()
 q = [planar.detectFaces()]
 used = set()
+
+facesList = []
+
 while len(q) > 0:
   f = q.pop(0)
 
   if (f in used):
     continue
+  
+  facesList.append(f)
 
   t2[f] = set()
   edges = f.getEdges()
@@ -105,7 +110,7 @@ while len(q) > 0:
       u = v1
       v = v2
 
-  if u != -1 and v != -1:
+  if u != -1 and v != -1: #u and v are only -1 when f = outer face
     if (clockWiseEdges % 2 == 0):
       A[u, v] = 1
       A[v, u] = -1
@@ -114,36 +119,68 @@ while len(q) > 0:
       A[v, u] = 1
   
   used.add(f)
-  q.extend(f.getAdjFaces())
+  t2Leafs = set()
+  del t2[f]
+  for k in t2.keys():
+    if f in t2[k]:
+      t2[k].remove(f)
+      if len(t2[k]) == 1:
+        t2Leafs.add(k)
+  q.extend(t2Leafs)
 
 #--------- Output ---------
+
+faces = set() #Set for check that # face = (n-1)^2 + 1
+edgeAppereances = dict() #Dict for check that every edge appear =2 on every face
+
+for f in used:
+  u = f.vertices[0]
+  v = f.vertices[1]
+  face = G.traverse_face(u, v)
+  s = str(face)
+  faces.add(s)
+  for j in range(len(face)):
+    i = j-1
+    u = min(face[i], face[j])
+    v = max(face[i], face[j])
+    if (u, v) in edgeAppereances:
+      edgeAppereances[(u, v)] += 1
+    else:
+      edgeAppereances[(u, v)] = 1
+
+print("# faces:", len(faces))
+for v1, v2 in G.edges:
+  u = min(v1, v2)
+  v = max(v1, v2)
+  if edgeAppereances[(u, v)] != 2:
+    print("Oh no!")
+
+#Now check that there's an odd number of 1 (and -1) per face
+for f in used:
+  ones = 0
+  minusOnes = 0
+  for j in range(len(f.vertices)):
+    i = j-1
+    u = f.vertices[i]
+    v = f.vertices[j]
+    if A[u, v] == 1: 
+      ones += 1
+      if A[v, u] != -1: print("Oh no1")
+
+    if A[u, v] == -1: 
+      minusOnes += 1
+      if A[v, u] != 1: print("Oh no2")
+
+  if ones % 2 == 0: print("Oh no3")
+  if minusOnes % 2 == 0: print("Oh no4")
+
 #Naive computation of determinant
 print("NUMPY DET COMPUTATION:")
 det = np.linalg.det(A)
-det = int(det)
+det = round(det)
 
 print("Determinant:", det)
-print("# of perf matches:", int(math.sqrt(det)))
-print("____________________________\n")
-
-print("SCIPY DET COMPUTATION:")
-det = scipy.linalg.det(A)
-det = int(det)
-
-print("Determinant:", det)
-print("# of perf matches:", int(math.sqrt(det)))
-print("____________________________\n")
-
-print("SCIPY LU DECOMPOSITION:")
-_, _, U = lu(A)
-getcontext().prec = 50
-det = Decimal(1)
-for i in range(U.shape[0]):
-  det *= Decimal(U[i, i])
-det = abs(det)
-
-print("Determinant:", int(det))
-print("# of perf matches:", int(det.sqrt()))
+print("# of perf matches:", round(math.sqrt(det)))
 print("____________________________\n")
 
 #Nested dissection computation of determinant
@@ -155,9 +192,16 @@ Gprime = nx.from_numpy_matrix(BBt)
 nd = NestedDissection.NestedDissection()
 det = nd.determinant(Gprime, BBt)
 
-print("Determinant:", int(det))
-print("# of perf matches:", int(det.sqrt()))
-print()
+print("Determinant:", round(det))
+print("# of perf matches:", round(det.sqrt()))
+
+print("____________________________\n")
+#print("SYMPY DET COMPUTATION")
+#A = Matrix(A)
+#det = abs(A.det())
+
+#print("Determinant:", int(det))
+#print("____________________________\n")
 
 #n = np.shape(A)[0]
 #for i in range(n):

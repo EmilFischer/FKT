@@ -47,7 +47,6 @@ class Planar:
     self.n = np.shape(matrix)[0]
     self.planar = nx.check_planarity(self.G)[1]
     self.edges = list(self.planar.edges)
-    self.facesList = []
 
   def draw(self):
     nx.draw_planar(self.planar, with_labels=True)
@@ -129,5 +128,4 @@ class Planar:
       if (n > 2): 
         f.addVertices(vertices)
 
-    self.facesList = list(set(faces.values()))
     return f

@@ -87,19 +87,3 @@ def sparsify(A, sparse) -> np.array:
         n += 2
 
     return B
-
-#G = nx.grid_2d_graph(100, 100)
-#M = nx.to_scipy_sparse_matrix(G)
-#B = sparsify(M.todense(), M)
-
-#n = B.shape[0]
-#print("n:", n)
-
-#For checking all rows/columns have <= 3 non-zeros
-#for i in range(n):
-#    c = 0
-#    for j in range(n):
-#        if B[i, j] != 0:
-#            c += 1
-#    if c > 3:
-#        print(i, c)
