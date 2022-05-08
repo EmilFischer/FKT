@@ -129,55 +129,10 @@ while len(q) > 0:
   q.extend(t2Leafs)
 
 #--------- Output ---------
-
-faces = set() #Set for check that # face = (n-1)^2 + 1
-edgeAppereances = dict() #Dict for check that every edge appear =2 on every face
-
-for f in used:
-  u = f.vertices[0]
-  v = f.vertices[1]
-  face = G.traverse_face(u, v)
-  s = str(face)
-  faces.add(s)
-  for j in range(len(face)):
-    i = j-1
-    u = min(face[i], face[j])
-    v = max(face[i], face[j])
-    if (u, v) in edgeAppereances:
-      edgeAppereances[(u, v)] += 1
-    else:
-      edgeAppereances[(u, v)] = 1
-
-print("# faces:", len(faces))
-for v1, v2 in G.edges:
-  u = min(v1, v2)
-  v = max(v1, v2)
-  if edgeAppereances[(u, v)] != 2:
-    print("Oh no!")
-
-#Now check that there's an odd number of 1 (and -1) per face
-for f in used:
-  ones = 0
-  minusOnes = 0
-  for j in range(len(f.vertices)):
-    i = j-1
-    u = f.vertices[i]
-    v = f.vertices[j]
-    if A[u, v] == 1: 
-      ones += 1
-      if A[v, u] != -1: print("Oh no1")
-
-    if A[u, v] == -1: 
-      minusOnes += 1
-      if A[v, u] != 1: print("Oh no2")
-
-  if ones % 2 == 0: print("Oh no3")
-  if minusOnes % 2 == 0: print("Oh no4")
-
 #Naive computation of determinant
-A = Matrix(A)
+A = N(Matrix(A), 1000)
 print("SYMPY DET COMPUTATION:")
-det = N(A.det(), 1000)
+det = Decimal(int(N(A.det(), 1000)))
 
 print("Determinant:", det)
 print("# of perf matches:", det.sqrt())
@@ -186,8 +141,13 @@ print("____________________________\n")
 #Nested dissection computation of determinant
 print("NESTED DISSECTION:")
 B = Sparsification.sparsify(A, Asparse)
-BBT = B * B.transpose()
-Gprime = nx.from_numpy_matrix(BBT)
+print("Sparsified!")
+BBT = N(B * B.transpose(), 1000)
+print("BBT!")
+adjMatrix = np.array(BBT).astype(np.float64)
+print("Converted to numpy!")
+Gprime = nx.from_numpy_matrix(adjMatrix)
+print("NX graph computed!")
 
 nd = NestedDissection.NestedDissection()
 det = nd.determinant(Gprime, BBT)
@@ -196,12 +156,6 @@ print("Determinant:", round(det))
 print("# of perf matches:", round(det.sqrt()))
 
 print("____________________________\n")
-#print("SYMPY DET COMPUTATION")
-#A = Matrix(A)
-#det = abs(A.det())
-
-#print("Determinant:", int(det))
-#print("____________________________\n")
 
 #n = np.shape(A)[0]
 #for i in range(n):

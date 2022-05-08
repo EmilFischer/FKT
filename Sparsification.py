@@ -1,6 +1,7 @@
 import numpy as np
 import networkx as nx
 from collections import deque
+from sympy import *
 
 def sparsify(A, sparse) -> np.array:
     #Create dict of the form: row index -> column indices with non-zero entry.
@@ -10,7 +11,7 @@ def sparsify(A, sparse) -> np.array:
     rows = deque() #List of rows that contain more than three non-zeros
 
     R = sparse.tocoo()
-    n = A.shape[0]-1
+    n = shape(A)[0]-1
     order = n+1
 
     for (r, c) in zip(R.row, R.col):
@@ -33,7 +34,7 @@ def sparsify(A, sparse) -> np.array:
         return A
 
     #Pad B with zeros for sparsification
-    B = np.zeros((order, order))
+    B = zeros(order, order)
     B[:-order+n+1, :-order+n+1] = A
 
     #Begin actual sparsification

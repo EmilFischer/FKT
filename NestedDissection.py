@@ -6,6 +6,7 @@ import PlanarEmbedding
 import math
 from decimal import *
 from scipy.linalg import lu
+from sympy import *
 import bisect
 
 class NestedDissection:
@@ -17,7 +18,7 @@ class NestedDissection:
         self.fills = dict()
 
     def determinant(self, G, M):
-        n = M.shape[0]
+        n = shape(M)[0]
         print("n:", n)
         print("Edges:", G.number_of_edges())
 
@@ -42,10 +43,10 @@ class NestedDissection:
         print("Edges + fill-ins:", c)
         print("Most edges + fill-ins in row:", q)
 
-        U = self.decomposition(M, G)
+        U = self.decomposition(M)
         print("Decomposition found!")
 
-        getcontext().prec = 100
+        getcontext().prec = 1000
         det = Decimal(1)
         for i in range(U.shape[0]):
             det *= Decimal(U[i, i])
@@ -197,7 +198,7 @@ class NestedDissection:
                 if w != m and w not in self.fills[m]:
                     self.fills[m].append(w)
 
-    def decomposition(self, M, G):
+    def decomposition(self, M):
         fills = dict()
         for i in self.fills:
             I = self.numbersInv[i]
@@ -205,14 +206,14 @@ class NestedDissection:
             for j in self.fills[i]:
                 bisect.insort(fills[I], self.numbersInv[j])
         
-        for i in range(M.shape[0]):
+        for i in range(shape(M)[0]):
             for j in fills[i]:
                 s = M[i, j] / M[i, i]
-                
+
                 for l in fills[i]:
                     if l < j: continue
                     M[j, l] = M[j, l] - s * M[i, l]
-                
-                M[i, j] = s
-        
+            
+            M[i, j] = s
+
         return M
