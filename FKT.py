@@ -17,7 +17,7 @@ os.environ['OPENBLAS_NUM_THREADS'] = '1'
 import numpy as np
 
 #--------- Create G ---------
-G = nx.grid_2d_graph(14, 14)
+G = nx.grid_2d_graph(12, 12)
 A = nx.to_numpy_array(G)
 
 planar = PlanarEmbedding.Planar(A)
@@ -175,22 +175,22 @@ for f in used:
   if minusOnes % 2 == 0: print("Oh no4")
 
 #Naive computation of determinant
-print("NUMPY DET COMPUTATION:")
-det = np.linalg.det(A)
-det = round(det)
+A = Matrix(A)
+print("SYMPY DET COMPUTATION:")
+det = N(A.det(), 1000)
 
 print("Determinant:", det)
-print("# of perf matches:", round(math.sqrt(det)))
+print("# of perf matches:", det.sqrt())
 print("____________________________\n")
 
 #Nested dissection computation of determinant
 print("NESTED DISSECTION:")
 B = Sparsification.sparsify(A, Asparse)
-BBt = np.matmul(B, B.transpose())
-Gprime = nx.from_numpy_matrix(BBt)
+BBT = B * B.transpose()
+Gprime = nx.from_numpy_matrix(BBT)
 
 nd = NestedDissection.NestedDissection()
-det = nd.determinant(Gprime, BBt)
+det = nd.determinant(Gprime, BBT)
 
 print("Determinant:", round(det))
 print("# of perf matches:", round(det.sqrt()))
