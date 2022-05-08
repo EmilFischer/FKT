@@ -4,20 +4,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import PlanarEmbedding
 import math
+import sympy
 from decimal import *
 from scipy.linalg import lu
 from sympy import *
 import bisect
 
 class NestedDissection:
-    T1 = None
-
     def __init__(self) -> None:
         self.numbers = dict()
         self.numbersInv = dict()
         self.fills = dict()
 
-    def determinant(self, G, M):
+    def determinant(self, G, M, prec):
         n = shape(M)[0]
         print("n:", n)
         print("Edges:", G.number_of_edges())
@@ -43,16 +42,19 @@ class NestedDissection:
         print("Edges + fill-ins:", c)
         print("Most edges + fill-ins in row:", q)
 
-        U = self.decomposition(M)
+        U = self.decomposition(M, prec)
         print("Decomposition found!")
 
-        getcontext().prec = 1000
-        det = Decimal(1)
+        #_,U2,_ = M.LUdecomposition()
+        #U2 = N(U2, prec)
+
+        det = Float(1.0, prec)
         for i in range(U.shape[0]):
-            det *= Decimal(U[i, i])
-        det = abs(det)
-        
-        return det.sqrt()
+            #if U2[i, i] != U[i, i]: print(i, N(U2[i, i], 10), N(U[i, i], 10))
+            det = N(det * U[i, i], prec)
+        det = round(det)
+
+        return N(sqrt(Abs(det)), prec)
 
     def separate(self, G) -> list:
         nodes = list(G.nodes)
@@ -198,22 +200,23 @@ class NestedDissection:
                 if w != m and w not in self.fills[m]:
                     self.fills[m].append(w)
 
-    def decomposition(self, M):
+    def decomposition(self, M, precision):
         fills = dict()
         for i in self.fills:
+            if len(self.fills[i]) == 0: continue
             I = self.numbersInv[i]
             fills[I] = []
             for j in self.fills[i]:
                 bisect.insort(fills[I], self.numbersInv[j])
         
-        for i in range(shape(M)[0]):
+        for i in range(len(fills)):
             for j in fills[i]:
-                s = M[i, j] / M[i, i]
+                s = N(M[i, j] / M[i, i], precision)
 
                 for l in fills[i]:
                     if l < j: continue
-                    M[j, l] = M[j, l] - s * M[i, l]
+                    M[j, l] = N(M[j, l] - s * M[i, l], precision)
             
             M[i, j] = s
 
-        return M
+        return N(M, precision)

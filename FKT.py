@@ -9,6 +9,7 @@ import scipy.sparse as sparse
 import MultiplyByTranspose as MbT
 import os
 import scipy.linalg
+import time
 from sympy import *
 from scipy.linalg import lu
 from decimal import *
@@ -17,7 +18,7 @@ os.environ['OPENBLAS_NUM_THREADS'] = '1'
 import numpy as np
 
 #--------- Create G ---------
-G = nx.grid_2d_graph(12, 12)
+G = nx.grid_2d_graph(20, 20)
 A = nx.to_numpy_array(G)
 
 planar = PlanarEmbedding.Planar(A)
@@ -129,31 +130,34 @@ while len(q) > 0:
   q.extend(t2Leafs)
 
 #--------- Output ---------
+precision = G.number_of_nodes()
+A = N(Matrix(A), precision)
 #Naive computation of determinant
-A = N(Matrix(A), 1000)
 print("SYMPY DET COMPUTATION:")
-det = Decimal(int(N(A.det(), 1000)))
+start = time.time()
+det = N(A.det(), precision)
+end = time.time()
 
-print("Determinant:", det)
-print("# of perf matches:", det.sqrt())
+print("Elapsed time:", round(end - start, 3), "seconds")
+print("Determinant:", int(det))
+print("# of perf matches:", int(N(sqrt(det), precision)))
 print("____________________________\n")
 
 #Nested dissection computation of determinant
 print("NESTED DISSECTION:")
+start = time.time()
 B = Sparsification.sparsify(A, Asparse)
-print("Sparsified!")
-BBT = N(B * B.transpose(), 1000)
-print("BBT!")
+BBT = B * B.transpose()
 adjMatrix = np.array(BBT).astype(np.float64)
-print("Converted to numpy!")
 Gprime = nx.from_numpy_matrix(adjMatrix)
-print("NX graph computed!")
 
 nd = NestedDissection.NestedDissection()
-det = nd.determinant(Gprime, BBT)
+det = nd.determinant(Gprime, BBT, precision)
+end = time.time()
 
-print("Determinant:", round(det))
-print("# of perf matches:", round(det.sqrt()))
+print("Elapsed time:", round(end - start, 3), "seconds")
+print("Determinant:", int(det))
+print("# of perf matches:", int(sqrt(det)))
 
 print("____________________________\n")
 
