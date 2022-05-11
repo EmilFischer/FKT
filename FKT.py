@@ -13,8 +13,6 @@ import time
 from sympy import *
 from scipy.linalg import lu
 from decimal import *
-
-os.environ['OPENBLAS_NUM_THREADS'] = '1'
 import numpy as np
 
 #--------- Create G ---------
@@ -133,15 +131,15 @@ while len(q) > 0:
 precision = G.number_of_nodes()
 A = N(Matrix(A), precision)
 #Naive computation of determinant
-print("SYMPY DET COMPUTATION:")
-start = time.time()
-det = N(A.det(), precision)
-end = time.time()
+#print("SYMPY DET COMPUTATION:")
+#start = time.time()
+#det = N(A.det(), precision)
+#end = time.time()
 
-print("Elapsed time:", round(end - start, 3), "seconds")
-print("Determinant:", int(det))
-print("# of perf matches:", int(N(sqrt(det), precision)))
-print("____________________________\n")
+#print("Elapsed time:", round(end - start, 3), "seconds")
+#print("Determinant:", int(det))
+#print("# of perf matches:", int(N(sqrt(det), precision)))
+#print("____________________________\n")
 
 #Nested dissection computation of determinant
 print("NESTED DISSECTION:")
@@ -160,12 +158,3 @@ print("Determinant:", int(det))
 print("# of perf matches:", int(sqrt(det)))
 
 print("____________________________\n")
-
-#n = np.shape(A)[0]
-#for i in range(n):
-#  for j in range(n):
-#    if (A[i, j]) == 1:
-#      A[j, i] = 0
-#G = nx.from_numpy_matrix(A, create_using=nx.DiGraph())
-#nx.draw_planar(G, with_labels=True)
-#plt.show()
