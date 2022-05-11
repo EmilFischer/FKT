@@ -131,15 +131,15 @@ while len(q) > 0:
 precision = G.number_of_nodes()
 A = N(Matrix(A), precision)
 #Naive computation of determinant
-#print("SYMPY DET COMPUTATION:")
-#start = time.time()
-#det = N(A.det(), precision)
-#end = time.time()
+print("SYMPY DET COMPUTATION:")
+start = time.time()
+det = N(A.det(), precision)
+end = time.time()
 
-#print("Elapsed time:", round(end - start, 3), "seconds")
-#print("Determinant:", int(det))
-#print("# of perf matches:", int(N(sqrt(det), precision)))
-#print("____________________________\n")
+print("Elapsed time:", round(end - start, 3), "seconds")
+print("Determinant:", int(det))
+print("# of perf matches:", int(N(sqrt(det), precision)))
+print("____________________________\n")
 
 #Nested dissection computation of determinant
 print("NESTED DISSECTION:")
@@ -154,7 +154,7 @@ det = nd.determinant(Gprime, BBT, precision)
 end = time.time()
 
 print("Elapsed time:", round(end - start, 3), "seconds")
-print("Determinant:", int(det))
-print("# of perf matches:", int(sqrt(det)))
+print("Determinant:", round(det))
+print("# of perf matches:", round(det.sqrt()))
 
 print("____________________________\n")

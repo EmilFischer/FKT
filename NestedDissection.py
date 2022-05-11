@@ -42,15 +42,15 @@ class NestedDissection:
         print("Edges + fill-ins:", c)
         print("Most edges + fill-ins in row:", q)
 
-        U = self.decomposition(M)
+        U = self.decomposition(M, prec)
         print("Decomposition found!")
 
-        det = Float(1.0, prec)
-        for i in range(U.shape[0]):
-            det = N(det * U[i, i], prec)
-        det = round(det)
+        det = Decimal(1)
+        for i in range(M.shape[0]):
+            det *= U[(i, i)]
+        det = abs(det)
 
-        return N(sqrt(Abs(det)), prec)
+        return det.sqrt()
 
     def separate(self, G) -> list:
         nodes = list(G.nodes)
@@ -197,7 +197,7 @@ class NestedDissection:
                 if w != m and w not in self.fills[m]:
                     self.fills[m].append(w)
 
-    def decomposition(self, M):
+    def decomposition(self, M, prec):
         fills = dict()
         for i in self.fills:
             if len(self.fills[i]) == 0: continue
@@ -206,14 +206,22 @@ class NestedDissection:
             for j in self.fills[i]:
                 bisect.insort(fills[I], self.numbersInv[j])
         
+        P = dict()
+        for i in range(M.shape[0]):
+            P[(i, i)] = Decimal(str(M[i, i]))
+            if i in fills:
+                for j in fills[i]:
+                    P[(i, j)] = Decimal(str(M[i, j]))
+
+        getcontext().prec = prec
         for i in fills:
             for j in fills[i]:
-                s = M[i, j] / M[i, i]
+                s = P[(i, j)] / P[(i, i)]
 
                 for l in fills[i]:
                     if l < j: continue
-                    M[j, l] = M[j, l] - s * M[i, l]
+                    P[(j, l)] = P[(j, l)] - s * P[(i, l)]
             
-            M[i, j] = s
+            P[(i, j)] = s
 
-        return M
+        return P
