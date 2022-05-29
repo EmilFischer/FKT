@@ -17,33 +17,9 @@ class NestedDissection:
         self.fills = dict()
 
     def determinant(self, G, M, prec):
-        n = shape(M)[0]
-        print("n:", n)
-        print("Edges:", G.number_of_edges())
-
         self.number(G)
-        print("Numbers found!")
-        print("Length of numbers:", len(self.numbers))
-        c = 0
-        for i in range(n):
-            if self.numbers[i] != i:
-                c += 1
-        print("Different numbers:", c)
-
         self.fill(G)
-        print("Fill-ins found!")
-
-        c = 0
-        q = 0
-        for i in range(n):
-            l = len(self.fills[i])
-            c += l
-            q = max(q, l)
-        print("Edges + fill-ins:", c)
-        print("Most edges + fill-ins in row:", q)
-
         U = self.decomposition(M, prec)
-        print("Decomposition found!")
 
         det = Decimal(1)
         for i in range(M.shape[0]):
@@ -88,6 +64,7 @@ class NestedDissection:
         S = []
         keys = levels.keys()
         for x in nodes:
+            if x in self.numbers: continue
             if x in keys:
                 if levels[x] == prevLvl:
                     S.append(x)
@@ -117,7 +94,7 @@ class NestedDissection:
         used = set()
 
         alpha = 2./3
-        beta = 6
+        beta = 2.83
         n0 = round(math.pow(beta/(1-alpha), 2))
 
         while len(stack) > 0:
@@ -135,11 +112,11 @@ class NestedDissection:
             if len(nodes) <= n0:
                 for v in nodes:
                     if v not in self.numbers:
-                        while a in values:
-                            a += 1
                         self.numbers[v] = a
                         self.numbersInv[a] = v
                         values.add(a)
+                        a += 1
+                        
             else:
                 sets = self.separate(Gprime)
                 i = len(sets[0])
@@ -149,13 +126,11 @@ class NestedDissection:
                 n = b-k+1
                 Gprime = nx.Graph(Gprime)
                 for v in sets[2]:
-                    if v not in self.numbers:
-                        while n in values:
-                            n += 1
-                            
+                    if v not in self.numbers: 
                         self.numbers[v] = n
                         self.numbersInv[n] = v
                         values.add(n)
+                        n += 1
                         
                         nbrs = list(Gprime.neighbors(v))
                         for u in nbrs:
@@ -215,11 +190,13 @@ class NestedDissection:
 
         getcontext().prec = prec
         for i in fills:
-            for j in fills[i]:
+            f = len(fills[i])
+            for J in range(f):
+                j = fills[i][J]
                 s = P[(i, j)] / P[(i, i)]
 
-                for l in fills[i]:
-                    if l < j: continue
+                for L in range(J, f):
+                    l = fills[i][L]
                     P[(j, l)] = P[(j, l)] - s * P[(i, l)]
             
             P[(i, j)] = s
