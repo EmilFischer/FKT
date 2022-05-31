@@ -7,7 +7,7 @@ print("___________________________________")
 print("_____________INITIATED_____________")
 print("___________________________________\n")
 # Set graph size
-for n in range(12, 20, 2):
+for n in range(8, 16, 2):
     print("n:", n)
     #--------- Create G ---------
     #-Halin graph-
@@ -20,7 +20,13 @@ for n in range(12, 20, 2):
     #G = nx.path_graph(n)
 
     #--------- Run FKT ---------
-    FKT(G)
+    #Optional parameters to state which 
+    #methods to use to compute determinant:
+    #nesteddissection = True/False
+    #naive = True/False
+    #sympy = True/False
+    
+    FKT(G, naive=True)
 
 
 #-Graph from adj. matrix-

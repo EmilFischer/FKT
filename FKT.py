@@ -15,7 +15,7 @@ from decimal import *
 import numpy as np
 from Halin import halin
 
-def FKT(G):
+def FKT(G, nesteddissection=True, naive=False, sympy=False):
   A = nx.to_numpy_array(G)
   planar = PlanarEmbedding.Planar(A)
   Asparse = nx.adjacency_matrix(G)
@@ -112,61 +112,65 @@ def FKT(G):
   #--------- Output ---------
   prec = G.number_of_nodes()
   print("# of nodes:", prec)
-  A = N(Matrix(A), prec)
+  A = N(SparseMatrix(A), prec)
   #Naive computation of determinant
   print("____________________________\n")
-  print("NAIVE DET COMPUTATION:")
-  B = Sparsification.sparsify(A, Asparse)
-  BBT = B * B.transpose()
-  n = shape(BBT)[0]
-  Q = [[Decimal(str(BBT[x, y])) for x in range(n)] for y in range(n)]
 
-  start = time.time()
-  getcontext().prec = prec
-  for i in range(n-1):
-    for j in range(i+1, n):
-      s = Q[i][j] / Q[i][i]
+  if naive:
+    print("NAIVE DET COMPUTATION:")
+    B = Sparsification.sparsify(A, Asparse)
+    BBT = B * B.transpose()
+    n = shape(BBT)[0]
+    Q = [[Decimal(str(BBT[x, y])) for x in range(n)] for y in range(n)]
 
-      for l in range(n):
-        Q[j][l] = Q[j][l] - s * Q[i][l]
-   
-      Q[i][j] = s
+    start = time.time()
+    getcontext().prec = prec
+    for i in range(n-1):
+      for j in range(i+1, n):
+        s = Q[i][j] / Q[i][i]
 
-  det = Decimal(1)
-  for i in range(n):
-    det *= Q[i][i]
-  det = det.sqrt()
-  end = time.time()
+        for l in range(n):
+          Q[j][l] = Q[j][l] - s * Q[i][l]
+    
+        Q[i][j] = s
 
-  print("Elapsed time:", round(end - start, 3), "seconds")
-  print("Determinant:", round(det))
-  print("# of perf matches:", round(det.sqrt()))
-  print("____________________________\n")
+    det = Decimal(1)
+    for i in range(n):
+      det *= Q[i][i]
+    det = det.sqrt()
+    end = time.time()
 
-  print("SYMPY DET COMPUTATION:")
-  start = time.time()
-  det = N(A.det(), prec)
-  end = time.time()
+    print("Elapsed time:", round(end - start, 3), "seconds")
+    print("Determinant:", round(det))
+    print("# of perf matches:", round(det.sqrt()))
+    print("____________________________\n")
 
-  print("Elapsed time:", round(end - start, 3), "seconds")
-  print("Determinant:", int(det))
-  print("# of perf matches:", int(N(sqrt(det), prec)))
-  print("____________________________\n")
+  if sympy:
+    print("SYMPY DET COMPUTATION:")
+    start = time.time()
+    det = N(A.det(), prec)
+    end = time.time()
+
+    print("Elapsed time:", round(end - start, 3), "seconds")
+    print("Determinant:", int(det))
+    print("# of perf matches:", int(N(sqrt(det), prec)))
+    print("____________________________\n")
 
   #Nested dissection computation of determinant
-  print("NESTED DISSECTION:")
-  start = time.time()
-  B = Sparsification.sparsify(A, Asparse)
-  BBT = B * B.transpose()
-  adjMatrix = np.array(BBT).astype(np.float64)
-  Gprime = nx.from_numpy_matrix(adjMatrix)
+  if nesteddissection:
+    print("NESTED DISSECTION:")
+    start = time.time()
+    B = Sparsification.sparsify(A, Asparse)
+    BBT = B * B.transpose()
+    adjMatrix = np.array(BBT).astype(np.float64)
+    Gprime = nx.from_numpy_matrix(adjMatrix)
 
-  nd = NestedDissection.NestedDissection()
-  det = nd.determinant(Gprime, BBT, prec)
-  end = time.time()
+    nd = NestedDissection.NestedDissection()
+    det = nd.determinant(Gprime, BBT, prec)
+    end = time.time()
 
-  print("Elapsed time:", round(end - start, 3), "seconds")
-  print("Determinant:", round(det))
-  print("# of perf matches:", round(det.sqrt()))
+    print("Elapsed time:", round(end - start, 3), "seconds")
+    print("Determinant:", round(det))
+    print("# of perf matches:", round(det.sqrt()))
 
-  print("____________________________\n")
+    print("____________________________\n")
